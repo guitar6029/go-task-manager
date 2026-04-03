@@ -7,8 +7,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	api "taskmanager/api"
 	dbpkg "taskmanager/db"
 	model "taskmanager/model"
+	service "taskmanager/service"
 )
 
 var commands = []string{"help", "q (quit)", "add <task>", "list <done | pending> [--limit=N] [--offset=N]", "next", "prev", "delete <id>", "done <id>"}
@@ -25,6 +27,9 @@ func main() {
 		return
 	}
 	defer db.Close()
+
+	//api start
+	go api.Start(db)
 
 	scanner := bufio.NewScanner(os.Stdin)
 
@@ -78,7 +83,7 @@ func handler(db *sql.DB, command string, args []string) {
 			offset = offsetOverride
 		}
 
-		tasks, err := dbpkg.GetTasks(db, currentFilter, currentLimit, offset)
+		tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			return
@@ -93,7 +98,7 @@ func handler(db *sql.DB, command string, args []string) {
 	case "next":
 		offset += currentLimit
 
-		tasks, err := dbpkg.GetTasks(db, currentFilter, currentLimit, offset)
+		tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			return
@@ -116,7 +121,7 @@ func handler(db *sql.DB, command string, args []string) {
 
 		offset -= currentLimit
 
-		tasks, err := dbpkg.GetTasks(db, currentFilter, currentLimit, offset)
+		tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
 		if err != nil {
 			fmt.Println("Error: ", err)
 			return
@@ -139,7 +144,7 @@ func handler(db *sql.DB, command string, args []string) {
 			fmt.Println("Error : ", err)
 			return
 		}
-		err = dbpkg.DeleteTask(db, taskID)
+		err = service.DeleteTask(db, taskID)
 		if err != nil {
 			fmt.Println("Task not found")
 
@@ -153,7 +158,7 @@ func handler(db *sql.DB, command string, args []string) {
 			fmt.Println("Error : ", err)
 			return
 		}
-		err = dbpkg.UpdateTaskStatus(db, taskID, true)
+		err = service.MarkTaskDone(db, taskID)
 		if err != nil {
 
 			fmt.Println("Task not found")
