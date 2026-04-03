@@ -7,7 +7,8 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	api "taskmanager/api"
+
+	apipkg "taskmanager/api"
 	dbpkg "taskmanager/db"
 	model "taskmanager/model"
 	service "taskmanager/service"
@@ -29,7 +30,7 @@ func main() {
 	defer db.Close()
 
 	//api start
-	go api.Start(db)
+	go apipkg.Start(db)
 
 	scanner := bufio.NewScanner(os.Stdin)
 
