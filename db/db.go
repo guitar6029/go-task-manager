@@ -4,11 +4,11 @@ import (
 	"database/sql"
 	"fmt"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 func Init() (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", "tasks.db")
+	db, err := sql.Open("sqlite", "tasks.db")
 	if err != nil {
 		return nil, err
 	}
