@@ -1,0 +1,51 @@
+# Binaries / build output
+/bin/
+/build/
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Go workspace (if you ever use it)
+go.work
+
+# Dependency directories (rare in Go, but safe)
+vendor/
+
+# Logs
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Coverage reports
+coverage.out
+*.coverprofile
+
+# Temporary files
+tmp/
+temp/
+
+# SQLite / local DB (if you switch from JSON later)
+*.db
+*.sqlite
+
+# JSON data (optional)
+# If tasks.json is just local data, ignore it:
+# tasks.json
