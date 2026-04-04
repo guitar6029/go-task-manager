@@ -119,6 +119,41 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/tasks/{id}": {
+            "delete": {
+                "description": "Delete a task",
+                "tags": [
+                    "tasks"
+                ],
+                "summary": "Delete Task",
+                "responses": {
+                    "204": {
+                        "description": "No Content",
+                        "schema": {
+                            "type": "string"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": {
+                                "type": "string"
+                            }
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
