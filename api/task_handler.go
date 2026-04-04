@@ -60,3 +60,48 @@ func GetTasksHandler(db *sql.DB) gin.HandlerFunc {
 		c.JSON(http.StatusOK, tasks)
 	}
 }
+
+type CreateTaskRequest struct {
+	Title string `json:"title"`
+}
+
+// CreateTask godoc
+// @Summary Create Task
+// @Description Create a new task
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param task body CreateTaskRequest true "Task payload"
+// @Success 201 {object} model.Task
+// @Failure 400 {object} map[string]string
+// @Failure 500 {object} map[string]string
+// @Router /tasks [post]
+func CreateTaskHandler(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+
+		var body CreateTaskRequest
+
+		// parse JSON
+		if err := c.BindJSON(&body); err != nil {
+			c.JSON(400, gin.H{"error": "invalid body"})
+		}
+
+		//validate it
+		if body.Title == "" {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "title cannot be empty"})
+			return
+		}
+
+		//call service
+		id, err := servicepkg.CreateTask(db, body.Title)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		c.JSON(http.StatusCreated, gin.H{
+			"id":    id,
+			"title": body.Title,
+			"done":  false,
+		})
+	}
+}

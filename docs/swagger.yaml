@@ -1,4 +1,9 @@
 definitions:
+  api.CreateTaskRequest:
+    properties:
+      title:
+        type: string
+    type: object
   model.Task:
     properties:
       done:
@@ -45,6 +50,39 @@ paths:
               type: string
             type: object
       summary: Get tasks
+      tags:
+      - tasks
+    post:
+      consumes:
+      - application/json
+      description: Create a new task
+      parameters:
+      - description: Task payload
+        in: body
+        name: task
+        required: true
+        schema:
+          $ref: '#/definitions/api.CreateTaskRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "500":
+          description: Internal Server Error
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Create Task
       tags:
       - tasks
 swagger: "2.0"

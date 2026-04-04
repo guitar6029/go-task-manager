@@ -22,5 +22,7 @@ func Start(db *sql.DB) {
 func registerRoutes(r *gin.Engine, db *sql.DB) {
 	r.GET("/tasks", GetTasksHandler(db))
 
+	r.POST("/tasks", CreateTaskHandler(db))
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
