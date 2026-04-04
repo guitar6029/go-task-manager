@@ -4,11 +4,26 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
+	model "taskmanager/model"
 	servicepkg "taskmanager/service"
 
 	"github.com/gin-gonic/gin"
 )
 
+var _ = model.Task{}
+
+// GetTasks godoc
+// @Summary Get tasks
+// @Description Get tasks with optional filters
+// @Tags tasks
+// @Accept json
+// @Produce json
+// @Param limit query int false "Limit"
+// @Param offset query int false "Offset"
+// @Param done query bool false "Done filter"
+// @Success 200 {array} model.Task
+// @Failure 500 {object} map[string]string
+// @Router /tasks [get]
 func GetTasksHandler(db *sql.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		//read query params

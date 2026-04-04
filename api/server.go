@@ -4,6 +4,8 @@ import (
 	"database/sql"
 
 	"github.com/gin-gonic/gin"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 const limit = 5
@@ -19,4 +21,6 @@ func Start(db *sql.DB) {
 
 func registerRoutes(r *gin.Engine, db *sql.DB) {
 	r.GET("/tasks", GetTasksHandler(db))
+
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
