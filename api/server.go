@@ -3,6 +3,8 @@ package api
 import (
 	"database/sql"
 
+	middleware "taskmanager/middleware"
+
 	"github.com/gin-gonic/gin"
 	swaggerFiles "github.com/swaggo/files"
 	ginSwagger "github.com/swaggo/gin-swagger"
@@ -13,6 +15,8 @@ const offset = 0
 
 func Start(db *sql.DB) {
 	r := gin.Default()
+
+	r.Use(middleware.RateLimiter())
 
 	registerRoutes(r, db)
 
