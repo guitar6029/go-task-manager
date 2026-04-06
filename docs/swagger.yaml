@@ -88,9 +88,15 @@ paths:
   /tasks/{id}:
     delete:
       description: Delete a task
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
       responses:
         "204":
-          description: No Content
+          description: No response body
           schema:
             type: string
         "400":
@@ -106,6 +112,34 @@ paths:
               type: string
             type: object
       summary: Delete Task
+      tags:
+      - tasks
+    patch:
+      description: Update task's done property
+      parameters:
+      - description: Task ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Task'
+        "400":
+          description: Bad Request
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "404":
+          description: Not Found
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      summary: Update Task status
       tags:
       - tasks
 swagger: "2.0"

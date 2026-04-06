@@ -173,12 +173,12 @@ func handler(db *sql.DB, command string, args []string) {
 			fmt.Println("Error : ", err)
 			return
 		}
-		err = service.MarkTaskDone(db, taskID)
+		task, err := service.MarkTaskDone(db, taskID)
 		if err != nil {
 
 			fmt.Println("Task not found")
 		} else {
-			fmt.Printf("Task %d marked as done\n", taskID)
+			fmt.Printf("Task %s %d marked as done\n", task.Title, taskID)
 		}
 
 	default:

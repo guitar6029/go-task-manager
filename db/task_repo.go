@@ -61,19 +61,27 @@ func GetTasks(db *sql.DB, listType string, limit int, offset int) ([]model.Task,
 	return tasks, nil
 }
 
-func UpdateTaskStatus(db *sql.DB, taskID int, done bool) error {
+func UpdateTaskStatus(db *sql.DB, taskID int, done bool) (model.Task, error) {
 	result, err := db.Exec(`UPDATE tasks SET done = ? WHERE id = ?`, done, taskID)
 	if err != nil {
-		return err
+		return model.Task{}, err
 	}
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		return err
+		return model.Task{}, err
 	}
 	if rowsAffected == 0 {
-		return fmt.Errorf("task not found")
+		return model.Task{}, fmt.Errorf("task not found")
 	}
-	return nil
+
+	var task model.Task
+	err = db.QueryRow(`SELECT id, title, done FROM tasks WHERE id = ?`, taskID).
+		Scan(&task.ID, &task.Title, &task.Done)
+	if err != nil {
+		return model.Task{}, err
+	}
+	return task, nil
+
 }
 
 func DeleteTask(db *sql.DB, taskID int) error {

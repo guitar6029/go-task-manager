@@ -110,7 +110,8 @@ func CreateTaskHandler(db *sql.DB) gin.HandlerFunc {
 // @Summary Delete Task
 // @Description Delete a task
 // @Tags tasks
-// @Success 204 {string} string "No Content"
+// @Param id path int true "Task ID"
+// @Success 204 {string} string "No response body"
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /tasks/{id} [delete]
@@ -130,5 +131,33 @@ func DeleteTaskHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		c.Status(http.StatusNoContent) // 204
+	}
+}
+
+// UpdateTask godoc
+// @Summary Update Task status
+// @Description Update task's done property
+// @Tags tasks
+// @Param id path int true "Task ID"
+// @Success 200 {object} model.Task
+// @Failure 400 {object} map[string]string
+// @Failure 404 {object} map[string]string
+// @Router /tasks/{id} [patch]
+func UpdateTaskStatusHandler(db *sql.DB) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		idStr := c.Param("id")
+		id, err := strconv.Atoi(idStr)
+		if err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid id"})
+			return
+		}
+
+		task, err := servicepkg.MarkTaskDone(db, id)
+		if err != nil {
+			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+			return
+		}
+
+		c.JSON(http.StatusOK, task)
 	}
 }

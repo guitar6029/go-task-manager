@@ -26,6 +26,6 @@ func DeleteTask(db *sql.DB, id int) error {
 	return dbpkg.DeleteTask(db, id)
 }
 
-func MarkTaskDone(db *sql.DB, id int) error {
+func MarkTaskDone(db *sql.DB, id int) (model.Task, error) {
 	return dbpkg.UpdateTaskStatus(db, id, true)
 }

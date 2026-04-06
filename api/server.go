@@ -26,5 +26,7 @@ func registerRoutes(r *gin.Engine, db *sql.DB) {
 
 	r.DELETE("/tasks/:id", DeleteTaskHandler(db))
 
+	r.PATCH("/tasks/:id", UpdateTaskStatusHandler(db))
+
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
