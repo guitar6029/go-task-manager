@@ -3,8 +3,10 @@ package api
 import (
 	"database/sql"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"github.com/golang-jwt/jwt/v5"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -48,8 +50,26 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		err = bcrypt.CompareHashAndPassword([]byte(password), []byte(body.Password))
+		if err != nil {
+			c.JSON(401, gin.H{"error": "invalid credentials"})
+			return
+		}
+
+		// jwt token
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"user_id": userID,
+			"exp":     time.Now().Add(time.Hour * 24).Unix(),
+		})
+
+		tokenString, err := token.SignedString([]byte("secret"))
+		if err != nil {
+			c.JSON(500, gin.H{"error": "could not create token"})
+			return
+		}
+
 		c.JSON(200, gin.H{
-			"message": "log on endpoint hit",
+			"token": tokenString,
 		})
 	}
 }
@@ -93,6 +113,7 @@ func RegisterHandler(db *sql.DB) gin.HandlerFunc {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(500, gin.H{"error": "could not hash password"})
+			return
 		}
 
 		_, err = db.Exec("INSERT INTO users (email, password) VALUES (?, ?)", body.Email, string(hashedPassword))
