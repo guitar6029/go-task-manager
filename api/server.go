@@ -29,13 +29,12 @@ func registerRoutes(r *gin.Engine, db *sql.DB) {
 
 	r.POST("/register", RegisterHandler(db))
 
-	r.GET("/tasks", GetTasksHandler(db))
-
-	r.POST("/tasks", CreateTaskHandler(db))
-
-	r.DELETE("/tasks/:id", DeleteTaskHandler(db))
-
-	r.PATCH("/tasks/:id", UpdateTaskStatusHandler(db))
+	authorized := r.Group("/")
+	authorized.Use(middleware.AuthMiddleware())
+	authorized.GET("/tasks", GetTasksHandler(db))
+	authorized.POST("/tasks", CreateTaskHandler(db))
+	authorized.DELETE("/tasks/:id", DeleteTaskHandler(db))
+	authorized.PATCH("/tasks/:id", UpdateTaskStatusHandler(db))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }
