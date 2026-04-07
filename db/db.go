@@ -23,6 +23,16 @@ func Init() (*sql.DB, error) {
 		return nil, err
 	}
 
+	// create user table
+	_, err = db.Exec(`CREATE TABLE IF NOT EXISTS users (
+		id INTEGER PRIMARY KEY AUTOINCREMENT,
+		email UNIQUE NOT NULL,
+		password TEXT NOT NULL
+	)`)
+	if err != nil {
+		return nil, err
+	}
+
 	fmt.Println("Connected to the sqlite db!")
 	return db, nil
 }

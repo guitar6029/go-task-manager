@@ -24,6 +24,11 @@ func Start(db *sql.DB) {
 }
 
 func registerRoutes(r *gin.Engine, db *sql.DB) {
+
+	r.POST("/login", LoginHandler(db))
+
+	r.POST("/register", RegisterHandler(db))
+
 	r.GET("/tasks", GetTasksHandler(db))
 
 	r.POST("/tasks", CreateTaskHandler(db))
