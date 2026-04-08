@@ -1,8 +1,13 @@
 {
     "swagger": "2.0",
     "info": {
-        "contact": {}
+        "description": "Task management API with JWT authentication",
+        "title": "Task Manager API",
+        "contact": {},
+        "version": "1.0"
     },
+    "host": "localhost",
+    "basePath": "/",
     "paths": {
         "/tasks": {
             "get": {

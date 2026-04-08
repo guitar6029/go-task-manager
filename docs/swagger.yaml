@@ -1,3 +1,4 @@
+basePath: /
 definitions:
   api.CreateTaskRequest:
     properties:
@@ -13,8 +14,12 @@ definitions:
       title:
         type: string
     type: object
+host: localhost
 info:
   contact: {}
+  description: Task management API with JWT authentication
+  title: Task Manager API
+  version: "1.0"
 paths:
   /tasks:
     get:

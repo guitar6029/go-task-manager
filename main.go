@@ -1,17 +1,10 @@
-// GetTasks godoc
-// @Summary Get tasks
-// @Description Get tasks with optional filters
-// @Tags tasks
-// @Accept json
-// @Produce json
-// @Param limit query int false "Limit"
-// @Param offset query int false "Offset"
-// @Param done query bool false "Done filter"
-// @Success 200 {array} model.Task
-// @Failure 500 {object} map[string]string
-// @Router /tasks [get]
-
 package main
+
+// @title Task Manager API
+// @version 1.0
+// @description Task management API with JWT authentication
+// @host localhost
+// @BasePath /
 
 import (
 	"bufio"
