@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"time"
 
@@ -110,11 +111,17 @@ func RegisterHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
+		start := time.Now()
+
+		log.Println("Before hash :", time.Since(start))
+
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 		if err != nil {
 			c.JSON(500, gin.H{"error": "could not hash password"})
 			return
 		}
+
+		log.Println("After hash :", time.Since(start))
 
 		_, err = db.Exec("INSERT INTO users (email, password) VALUES (?, ?)", body.Email, string(hashedPassword))
 		if err != nil {
@@ -123,6 +130,8 @@ func RegisterHandler(db *sql.DB) gin.HandlerFunc {
 			})
 			return
 		}
+
+		log.Println("After DB: ", time.Since(start))
 
 		c.JSON(201, gin.H{"message": "user created"})
 

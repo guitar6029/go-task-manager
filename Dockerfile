@@ -10,6 +10,8 @@ FROM debian:bookworm-slim
 
 WORKDIR /app
 
+RUN apt-get update && apt-get install -y curl
+
 COPY --from=builder /app/app .
 
 EXPOSE 8080

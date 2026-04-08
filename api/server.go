@@ -25,6 +25,9 @@ func Start(db *sql.DB) {
 
 func registerRoutes(r *gin.Engine, db *sql.DB) {
 
+	//health
+	r.GET("/health", HealthHandler(db))
+
 	r.POST("/login", LoginHandler(db))
 
 	r.POST("/register", RegisterHandler(db))

@@ -49,7 +49,7 @@ func main() {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	for {
-		fmt.Print("> ")
+		//fmt.Print("> ")
 		scanner.Scan()
 		input := scanner.Text()
 
