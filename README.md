@@ -1,4 +1,6 @@
 🔧 Task Manager API (Go + Gin)
+
+
 📌 Overview
 
 A production-style backend API built with Go, focused on authentication, task management, and scalable system design. This project demonstrates clean architecture, RESTful API design, and containerized deployment.
@@ -11,6 +13,7 @@ Pagination (limit & offset)
 PostgreSQL database integration
 Dockerized setup for easy deployment
 Input validation & error handling
+
 🛠 Tech Stack
 Language: Go
 Framework: Gin
@@ -18,14 +21,27 @@ Database: PostgreSQL
 Auth: JWT
 Containerization: Docker
 Docs: Swagger
+
 📂 Project Structure
-/cmd            # Entry point
-/internal
-  /api          # Handlers
-  /middleware   # Auth middleware
-  /db           # Database logic
-  /models       # Structs
-/pkg            # Shared utilities
+
+go-task-manager/
+├── api/ # HTTP handlers (Gin routes)
+├── db/ # Database queries & connection logic
+├── docs/ # Swagger generated files
+├── middleware/ # Middleware (JWT, rate limiting)
+├── model/ # Data models (structs)
+├── nginx/ # Nginx reverse proxy config
+├── service/ # Business logic layer
+├── .env # Environment variables
+├── docker-compose.yml
+├── Dockerfile
+├── go.mod
+├── go.sum
+├── main.go # Entry point (CLI + API bootstrap)
+├── README.md
+└── tasks.db # SQLite database (dev)
+
+
 ⚙️ Getting Started
 1. Clone the repo
 git clone https://github.com/yourusername/task-manager.git
