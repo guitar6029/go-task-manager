@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"log"
 	model "taskmanager/model"
 )
 
@@ -52,7 +53,11 @@ func GetTasks(db *sql.DB, listType string, limit int, offset int) ([]model.Task,
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() {
+		if err := rows.Close(); err != nil {
+			log.Println("error closing rows: ", err)
+		}
+	}()
 
 	for rows.Next() {
 		var task model.Task

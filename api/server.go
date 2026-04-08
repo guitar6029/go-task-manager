@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 
 	middleware "taskmanager/middleware"
 
@@ -10,9 +11,6 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-const limit = 5
-const offset = 0
-
 func Start(db *sql.DB) {
 	r := gin.Default()
 
@@ -20,7 +18,9 @@ func Start(db *sql.DB) {
 
 	registerRoutes(r, db)
 
-	r.Run(":8080")
+	if err := r.Run(":8080"); err != nil {
+		log.Fatal(err)
+	}
 }
 
 func registerRoutes(r *gin.Engine, db *sql.DB) {

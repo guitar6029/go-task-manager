@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -34,7 +35,11 @@ func main() {
 		fmt.Println("Error initializing DB: ", err)
 		return
 	}
-	defer db.Close()
+	defer func() {
+		if err := db.Close(); err != nil {
+			log.Println("error closing db: ", err)
+		}
+	}()
 
 	//api start
 	go apipkg.Start(db)
