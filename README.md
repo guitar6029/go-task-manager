@@ -42,6 +42,19 @@ go-task-manager/
 └── tasks.db # SQLite database (dev)
 
 
+### 🧠 Architecture Overview
+
+This project follows a layered architecture:
+
+- **api/** → Handles HTTP requests and responses (Gin)
+- **service/** → Contains business logic, reused by both API and CLI
+- **db/** → Handles direct database interactions
+- **model/** → Defines data structures
+- **middleware/** → Cross-cutting concerns (rate limiting, auth)
+- **nginx/** → Reverse proxy configuration for production-like setup
+
+The service layer is shared between the CLI and API to avoid duplication and ensure consistent business logic.
+
 ⚙️ Getting Started
 1. Clone the repo
 git clone https://github.com/yourusername/task-manager.git
