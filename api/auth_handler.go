@@ -22,7 +22,7 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 		var body AuthRequest
 
 		if err := c.BindJSON(&body); err != nil {
-			c.JSON(400, gin.H{"error": "invalid body"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
 			return
 		}
 
@@ -36,24 +36,28 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		//check if user exists in DB
+		// check if user exists in DB
 		var userID int
 		var email string
 		var password string
 
-		err := db.QueryRow(`SELECT id, email, password FROM users WHERE email = ?`, body.Email).Scan(&userID, &email, &password)
+		err := db.QueryRow(
+			`SELECT id, email, password FROM users WHERE email = $1`,
+			body.Email,
+		).Scan(&userID, &email, &password)
+
 		if err == sql.ErrNoRows {
-			c.JSON(401, gin.H{"error": "invalid credentials"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 			return
 		}
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "server error"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "server error"})
 			return
 		}
 
 		err = bcrypt.CompareHashAndPassword([]byte(password), []byte(body.Password))
 		if err != nil {
-			c.JSON(401, gin.H{"error": "invalid credentials"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "invalid credentials"})
 			return
 		}
 
@@ -65,11 +69,11 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 
 		tokenString, err := token.SignedString([]byte("secret"))
 		if err != nil {
-			c.JSON(500, gin.H{"error": "could not create token"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create token"})
 			return
 		}
 
-		c.JSON(200, gin.H{
+		c.JSON(http.StatusOK, gin.H{
 			"token": tokenString,
 		})
 	}
@@ -80,7 +84,7 @@ func RegisterHandler(db *sql.DB) gin.HandlerFunc {
 		var body AuthRequest
 
 		if err := c.BindJSON(&body); err != nil {
-			c.JSON(400, gin.H{"error": "invalid body"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "invalid body"})
 			return
 		}
 
@@ -95,45 +99,51 @@ func RegisterHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		var existingID int
-		//check if user exists
-		err := db.QueryRow(`SELECT id FROM users WHERE email = ?`, body.Email).Scan(&existingID)
+
+		// check if user exists
+		err := db.QueryRow(
+			`SELECT id FROM users WHERE email = $1`,
+			body.Email,
+		).Scan(&existingID)
+
 		if err == nil {
-			c.JSON(409, gin.H{
+			c.JSON(http.StatusConflict, gin.H{
 				"error": "user already exists",
 			})
 			return
 		}
 		if err != sql.ErrNoRows {
-			// real DB error
-			c.JSON(500, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "server error",
 			})
 			return
 		}
 
 		start := time.Now()
-
-		log.Println("Before hash :", time.Since(start))
+		log.Println("Before hash:", time.Since(start))
 
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(body.Password), bcrypt.DefaultCost)
 		if err != nil {
-			c.JSON(500, gin.H{"error": "could not hash password"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not hash password"})
 			return
 		}
 
-		log.Println("After hash :", time.Since(start))
+		log.Println("After hash:", time.Since(start))
 
-		_, err = db.Exec("INSERT INTO users (email, password) VALUES (?, ?)", body.Email, string(hashedPassword))
+		_, err = db.Exec(
+			`INSERT INTO users (email, password) VALUES ($1, $2)`,
+			body.Email,
+			string(hashedPassword),
+		)
 		if err != nil {
-			c.JSON(500, gin.H{
+			c.JSON(http.StatusInternalServerError, gin.H{
 				"error": "could not create user",
 			})
 			return
 		}
 
-		log.Println("After DB: ", time.Since(start))
+		log.Println("After DB:", time.Since(start))
 
-		c.JSON(201, gin.H{"message": "user created"})
-
+		c.JSON(http.StatusCreated, gin.H{"message": "user created"})
 	}
 }
