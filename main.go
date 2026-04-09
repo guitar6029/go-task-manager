@@ -7,20 +7,21 @@ package main
 // @BasePath /
 
 import (
-	"bufio"
 	"database/sql"
 	"fmt"
 	"log"
 	"os"
 	"strconv"
 	"strings"
+	"taskmanager/api"
 	_ "taskmanager/docs"
 
-	apipkg "taskmanager/api"
 	dbpkg "taskmanager/db"
 	model "taskmanager/model"
 	service "taskmanager/service"
 )
+
+var main_commands = []string{"api", "cli"}
 
 var commands = []string{"help", "q (quit)", "add <task>", "list <done | pending> [--limit=N] [--offset=N]", "next", "prev", "delete <id>", "done <id>"}
 var offset = 0
@@ -30,10 +31,12 @@ var currentLimit = 5
 
 func main() {
 
-	db, err := dbpkg.Init()
+	// mode selection
+	mode := os.Args[1]
+
+	db, err := dbInit()
 	if err != nil {
-		fmt.Println("Error initializing DB: ", err)
-		return
+		log.Fatal(err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
@@ -41,32 +44,34 @@ func main() {
 		}
 	}()
 
-	//api start
-	go apipkg.Start(db)
-
-	scanner := bufio.NewScanner(os.Stdin)
-
-	for {
-		//fmt.Print("> ")
-		scanner.Scan()
-		input := scanner.Text()
-
-		if input == "q" {
-			fmt.Println("Goodbye.")
-			break
-		}
-
-		parts := strings.Fields(input)
-		if len(parts) == 0 {
-			continue
-		}
-
-		command := parts[0]
-		args := parts[1:]
-
-		handler(db, command, args)
-
+	switch mode {
+	case "api":
+		startAPI(db)
+	case "cli":
+		startCLI(db)
+	default:
+		fmt.Println("Unknown Command")
 	}
+
+}
+
+func dbInit() (*sql.DB, error) {
+	//db init
+	db, err := dbpkg.Init()
+	if err != nil {
+		return nil, fmt.Errorf("Error initializing DB: %s", err)
+	}
+
+	return db, nil
+}
+
+func startAPI(db *sql.DB) {
+	fmt.Println("Initializing API Program")
+	api.Start(db)
+}
+
+func startCLI(db *sql.DB) {
+	fmt.Println("Initializing CLI Program")
 
 }
 
