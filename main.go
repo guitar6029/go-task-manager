@@ -18,6 +18,7 @@ import (
 	_ "taskmanager/docs"
 
 	dbpkg "taskmanager/db"
+	redispkg "taskmanager/internal/redis"
 	model "taskmanager/model"
 	service "taskmanager/service"
 
@@ -32,6 +33,17 @@ var currentFilter = ""
 var currentLimit = 5
 
 func main() {
+
+	// redis
+	redis := redispkg.NewClient()
+
+	//test connection
+	_, err := redis.Ping(redispkg.Ctx).Result()
+	if err != nil {
+		log.Fatalf("Failed to connect to Redis: %v", err)
+	}
+
+	log.Println("Connected to Redis!")
 
 	env := os.Getenv("APP_ENV")
 	switch env {
@@ -49,8 +61,11 @@ func main() {
 		log.Println("Running with system env variables")
 	}
 
-	// mode selection
-	mode := os.Args[1]
+	// default mode selection
+	mode := "api"
+	if len(os.Args) > 1 {
+		mode = os.Args[1]
+	}
 
 	db, err := dbInit()
 	if err != nil {
