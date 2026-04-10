@@ -84,6 +84,7 @@ func CreateTaskHandler(db *sql.DB) gin.HandlerFunc {
 		// parse JSON
 		if err := c.BindJSON(&body); err != nil {
 			c.JSON(400, gin.H{"error": "invalid body"})
+			return
 		}
 
 		//validate it

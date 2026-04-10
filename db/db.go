@@ -19,6 +19,10 @@ func Init() (*sql.DB, error) {
 		os.Getenv("DB_NAME"),
 	)
 
+	if os.Getenv("APP_ENV") == "local" {
+		fmt.Println("connStr: ", connStr)
+	}
+
 	db, err := sql.Open("postgres", connStr)
 	if err != nil {
 		return nil, err

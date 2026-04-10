@@ -14,15 +14,18 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"taskmanager/api"
 	_ "taskmanager/docs"
 
-	apipkg "taskmanager/api"
 	dbpkg "taskmanager/db"
 	model "taskmanager/model"
 	service "taskmanager/service"
+
+	"github.com/joho/godotenv"
 )
 
-var commands = []string{"help", "q (quit)", "add <task>", "list <done | pending> [--limit=N] [--offset=N]", "next", "prev", "delete <id>", "done <id>"}
+// var commands = []string{"help", "q (quit)", "add <task>", "list <done | pending> [--limit=N] [--offset=N]", "next", "prev", "delete <id>", "done <id>"}
+var commands = []string{"help", "q (quit)", "add <task>", "list"}
 var offset = 0
 var currentFilter = ""
 
@@ -30,10 +33,28 @@ var currentLimit = 5
 
 func main() {
 
-	db, err := dbpkg.Init()
+	env := os.Getenv("APP_ENV")
+	switch env {
+	case "local":
+		err := godotenv.Load(".env.local")
+		if err != nil {
+			log.Println("No .env file found")
+		}
+	case "dev":
+		err := godotenv.Load(".env")
+		if err != nil {
+			log.Println("No .env file found")
+		}
+	default:
+		log.Println("Running with system env variables")
+	}
+
+	// mode selection
+	mode := os.Args[1]
+
+	db, err := dbInit()
 	if err != nil {
-		fmt.Println("Error initializing DB: ", err)
-		return
+		log.Fatal(err)
 	}
 	defer func() {
 		if err := db.Close(); err != nil {
@@ -41,37 +62,61 @@ func main() {
 		}
 	}()
 
-	//api start
-	go apipkg.Start(db)
-
-	scanner := bufio.NewScanner(os.Stdin)
-
-	for {
-		//fmt.Print("> ")
-		scanner.Scan()
-		input := scanner.Text()
-
-		if input == "q" {
-			fmt.Println("Goodbye.")
-			break
-		}
-
-		parts := strings.Fields(input)
-		if len(parts) == 0 {
-			continue
-		}
-
-		command := parts[0]
-		args := parts[1:]
-
-		handler(db, command, args)
-
+	switch mode {
+	case "api":
+		startAPI(db)
+	case "cli":
+		startCLI(db)
+	default:
+		fmt.Println("Unknown Command")
 	}
 
 }
 
+func dbInit() (*sql.DB, error) {
+	//db init
+	db, err := dbpkg.Init()
+	if err != nil {
+		return nil, fmt.Errorf("error initializing DB: %s", err)
+	}
+
+	return db, nil
+}
+
+func startAPI(db *sql.DB) {
+	fmt.Println("Initializing API Program")
+	api.Start(db)
+}
+
+func startCLI(db *sql.DB) {
+	fmt.Println("Initializing CLI Program")
+	fmt.Println("CLI mode (local dev tool)")
+
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Print(">")
+		scanner.Scan()
+
+		input := scanner.Text()
+		if input == "q" {
+			fmt.Println("Goodbye.")
+			break
+		}
+		parts := strings.Fields(input)
+		if len(parts) == 0 {
+			continue
+		}
+		handler(db, parts[0], parts[1:])
+	}
+}
+
 func handler(db *sql.DB, command string, args []string) {
 	switch command {
+	case "help":
+		fmt.Println("Commands:")
+		for _, c := range commands {
+			fmt.Println(c)
+		}
 	case "add":
 		var err error
 		title := strings.Join(args, " ")
@@ -108,93 +153,90 @@ func handler(db *sql.DB, command string, args []string) {
 		}
 		ListTasks(tasks)
 		fmt.Printf("Showing %d - %d\n", offset+1, offset+len(tasks))
-	case "next":
-		offset += currentLimit
-
-		tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			return
-		}
-
-		if len(tasks) == 0 {
-			fmt.Println("No more tasks")
-			offset -= currentLimit
-			return
-		}
-
-		ListTasks(tasks)
-		fmt.Printf("Showing %d - %d\n", offset+1, offset+len(tasks))
-	case "prev":
-
-		if offset == 0 {
-			fmt.Println("Already at first page")
-			return
-		}
-
-		offset -= currentLimit
-
-		tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
-		if err != nil {
-			fmt.Println("Error: ", err)
-			return
-		}
-
-		ListTasks(tasks)
-		fmt.Printf("Showing %d - %d\n", offset+1, offset+len(tasks))
-	case "help":
-		fmt.Println("Commands:")
-		for _, c := range commands {
-			fmt.Println(c)
-		}
-	case "delete":
-		if len(args) == 0 {
-			fmt.Println("Missing task id")
-			return
-		}
-		taskID, err := getTaskID(args)
-		if err != nil {
-			fmt.Println("Error : ", err)
-			return
-		}
-		err = service.DeleteTask(db, taskID)
-		if err != nil {
-			fmt.Println("Task not found")
-
-		} else {
-			fmt.Println("Deleted task : ", taskID)
-		}
-	case "done":
-
-		taskID, err := getTaskID(args)
-		if err != nil {
-			fmt.Println("Error : ", err)
-			return
-		}
-		task, err := service.MarkTaskDone(db, taskID)
-		if err != nil {
-
-			fmt.Println("Task not found")
-		} else {
-			fmt.Printf("Task %s %d marked as done\n", task.Title, taskID)
-		}
 
 	default:
 		fmt.Println("Unknown command")
 	}
+	// case "next":
+	// 	offset += currentLimit
+
+	// 	tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
+	// 	if err != nil {
+	// 		fmt.Println("Error: ", err)
+	// 		return
+	// 	}
+
+	// 	if len(tasks) == 0 {
+	// 		fmt.Println("No more tasks")
+	// 		offset -= currentLimit
+	// 		return
+	// 	}
+
+	// 	ListTasks(tasks)
+	// 	fmt.Printf("Showing %d - %d\n", offset+1, offset+len(tasks))
+	// case "prev":
+
+	// 	if offset == 0 {
+	// 		fmt.Println("Already at first page")
+	// 		return
+	// 	}
+
+	// 	offset -= currentLimit
+
+	// 	tasks, err := service.GetTasks(db, currentFilter, currentLimit, offset)
+	// 	if err != nil {
+	// 		fmt.Println("Error: ", err)
+	// 		return
+	// 	}
+
+	// 	ListTasks(tasks)
+	// 	fmt.Printf("Showing %d - %d\n", offset+1, offset+len(tasks))
+
+	// case "delete":
+	// 	if len(args) == 0 {
+	// 		fmt.Println("Missing task id")
+	// 		return
+	// 	}
+	// 	taskID, err := getTaskID(args)
+	// 	if err != nil {
+	// 		fmt.Println("Error : ", err)
+	// 		return
+	// 	}
+	// 	err = service.DeleteTask(db, taskID)
+	// 	if err != nil {
+	// 		fmt.Println("Task not found")
+
+	// 	} else {
+	// 		fmt.Println("Deleted task : ", taskID)
+	// 	}
+	// case "done":
+
+	// 	taskID, err := getTaskID(args)
+	// 	if err != nil {
+	// 		fmt.Println("Error : ", err)
+	// 		return
+	// 	}
+	// 	task, err := service.MarkTaskDone(db, taskID)
+	// 	if err != nil {
+
+	// 		fmt.Println("Task not found")
+	// 	} else {
+	// 		fmt.Printf("Task %s %d marked as done\n", task.Title, taskID)
+	// 	}
+
 }
 
-func getTaskID(args []string) (int, error) {
-	if len(args) == 0 {
-		return 0, fmt.Errorf("missing task id")
-	}
+// func getTaskID(args []string) (int, error) {
+// 	if len(args) == 0 {
+// 		return 0, fmt.Errorf("missing task id")
+// 	}
 
-	taskID, err := strconv.Atoi(args[0])
-	if err != nil {
-		return 0, fmt.Errorf("missing task id")
-	}
-	return taskID, nil
-}
+// 	taskID, err := strconv.Atoi(args[0])
+// 	if err != nil {
+// 		return 0, fmt.Errorf("missing task id")
+// 	}
+// 	return taskID, nil
+// }
 
 func ListTasks(tasks []model.Task) {
 	for _, t := range tasks {
