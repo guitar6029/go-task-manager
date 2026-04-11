@@ -14,17 +14,13 @@ import (
 	"os"
 	"strings"
 	_ "taskmanager/docs"
-	"taskmanager/internal/api"
 
 	dbpkg "taskmanager/internal/db"
 	model "taskmanager/internal/model"
-	redispkg "taskmanager/internal/redis"
 
-	"github.com/joho/godotenv"
-	"github.com/redis/go-redis/v9"
+	envpkg "taskmanager/internal/config"
 )
 
-// var commands = []string{"help", "q (quit)", "add <task>", "list <done | pending> [--limit=N] [--offset=N]", "next", "prev", "delete <id>", "done <id>"}
 var commands = []string{"help", "q (quit)", "add <task>", "list"}
 
 //var offset = 0
@@ -34,58 +30,21 @@ var commands = []string{"help", "q (quit)", "add <task>", "list"}
 
 func main() {
 
-	// redis
-	redis := redispkg.NewClient()
-
-	//test connection
-	_, err := redis.Ping(redispkg.Ctx).Result()
-	if err != nil {
-		log.Fatalf("Failed to connect to Redis: %v", err)
-	}
-
-	log.Println("Connected to Redis!")
-
-	env := os.Getenv("APP_ENV")
-	switch env {
-	case "local":
-		err := godotenv.Load(".env.local")
-		if err != nil {
-			log.Println("No .env file found")
-		}
-	case "dev":
-		err := godotenv.Load(".env")
-		if err != nil {
-			log.Println("No .env file found")
-		}
-	default:
-		log.Println("Running with system env variables")
-	}
-
-	// default mode selection
-	mode := "api"
-	if len(os.Args) > 1 {
-		mode = os.Args[1]
-	}
+	// laod env
+	envpkg.LoadEnv()
 
 	db, err := dbInit()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer func() {
 		if err := db.Close(); err != nil {
 			log.Println("error closing db: ", err)
 		}
 	}()
 
-	switch mode {
-	case "api":
-		startAPI(db, redis)
-	case "cli":
-		startCLI(db)
-	default:
-		fmt.Println("Unknown Command")
-	}
-
+	startCLI(db)
 }
 
 func dbInit() (*sql.DB, error) {
@@ -96,11 +55,6 @@ func dbInit() (*sql.DB, error) {
 	}
 
 	return db, nil
-}
-
-func startAPI(db *sql.DB, rdb *redis.Client) {
-	fmt.Println("Initializing API Program")
-	api.Start(db, rdb)
 }
 
 func startCLI(db *sql.DB) {
