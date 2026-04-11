@@ -2,9 +2,10 @@ package db
 
 import (
 	"database/sql"
+
 	"fmt"
 	"log"
-	model "taskmanager/model"
+	model "taskmanager/internal/model"
 )
 
 // CreateTask inserts a new task and returns its ID
@@ -29,7 +30,8 @@ func CreateTask(db *sql.DB, title string) (int64, error) {
 
 // GetTasks retrieves tasks with optional filtering and pagination
 func GetTasks(db *sql.DB, listType string, limit int, offset int) ([]model.Task, error) {
-	var tasks []model.Task
+
+	var tasks = []model.Task{}
 
 	query := "SELECT id, title, done FROM tasks"
 	args := []interface{}{}
