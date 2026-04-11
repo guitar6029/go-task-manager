@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"net/http"
 	"strconv"
-	model "taskmanager/model"
-	servicepkg "taskmanager/service"
+	model "taskmanager/internal/model"
+	servicepkg "taskmanager/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/redis/go-redis/v9"
 )
 
 var _ = model.Task{}
@@ -24,7 +25,7 @@ var _ = model.Task{}
 // @Success 200 {array} model.Task
 // @Failure 500 {object} map[string]string
 // @Router /tasks [get]
-func GetTasksHandler(db *sql.DB) gin.HandlerFunc {
+func GetTasksHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		//read query params
 		limitStr := c.Query("limit")
@@ -51,7 +52,7 @@ func GetTasksHandler(db *sql.DB) gin.HandlerFunc {
 			filter = "pending"
 		}
 
-		tasks, err := servicepkg.GetTasks(db, filter, limit, offset)
+		tasks, err := servicepkg.GetTasks(db, rdb, filter, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -76,7 +77,7 @@ type CreateTaskRequest struct {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /tasks [post]
-func CreateTaskHandler(db *sql.DB) gin.HandlerFunc {
+func CreateTaskHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var body CreateTaskRequest
@@ -94,7 +95,7 @@ func CreateTaskHandler(db *sql.DB) gin.HandlerFunc {
 		}
 
 		//call service
-		id, err := servicepkg.CreateTask(db, body.Title)
+		id, err := servicepkg.CreateTask(db, rdb, body.Title)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -116,7 +117,7 @@ func CreateTaskHandler(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /tasks/{id} [delete]
-func DeleteTaskHandler(db *sql.DB) gin.HandlerFunc {
+func DeleteTaskHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -125,7 +126,7 @@ func DeleteTaskHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		err = servicepkg.DeleteTask(db, id)
+		err = servicepkg.DeleteTask(db, rdb, id)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 			return
@@ -144,7 +145,7 @@ func DeleteTaskHandler(db *sql.DB) gin.HandlerFunc {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /tasks/{id} [patch]
-func UpdateTaskStatusHandler(db *sql.DB) gin.HandlerFunc {
+func UpdateTaskStatusHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -153,7 +154,7 @@ func UpdateTaskStatusHandler(db *sql.DB) gin.HandlerFunc {
 			return
 		}
 
-		task, err := servicepkg.MarkTaskDone(db, id)
+		task, err := servicepkg.MarkTaskDone(db, rdb, id)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 			return
