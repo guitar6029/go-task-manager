@@ -1,4 +1,4 @@
-.PHONY: lint tidy build run docker-build docker-up help
+.PHONY: lint tidy build run test docker-build docker-up help
 
 help:
 	@echo "Available commands:"	
@@ -18,3 +18,6 @@ build:
 
 run:
 	go run ./cmd/api
+
+test:
+	go test ./... -v	
