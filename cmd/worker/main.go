@@ -76,13 +76,31 @@ func main() {
 			}
 
 			if err := dbpkg.DeleteTask(db, payload.ID); err != nil {
-				log.Println("faild to delete task:", err)
+				log.Println("failed to delete task:", err)
 				continue
 
 			}
 
 			cache.InvalidateTasks(rdb)
 			log.Printf("Task %d deleted", payload.ID)
+
+		case "mark_task_done":
+			var payload struct {
+				ID int `json:"id"`
+			}
+
+			if err := json.Unmarshal(job.Payload, &payload); err != nil {
+				log.Println("failed to parse payload:", err)
+				continue
+			}
+
+			if _, err := dbpkg.UpdateTaskStatus(db, payload.ID, true); err != nil {
+				log.Println("failed to update task:", err)
+				continue
+			}
+
+			cache.InvalidateTasks(rdb)
+			log.Printf("Task id - %d has been updated to done", payload.ID)
 
 		default:
 			log.Println("unknown job type:", job.Type)

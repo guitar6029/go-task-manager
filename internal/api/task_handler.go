@@ -101,7 +101,7 @@ func CreateTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
-		c.JSON(http.StatusCreated, gin.H{
+		c.JSON(http.StatusAccepted, gin.H{
 			"message": "task queued",
 		})
 	}
@@ -132,7 +132,7 @@ func DeleteTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 		}
 
 		//c.Status(http.StatusNoContent) // 204
-		c.JSON(http.StatusCreated, gin.H{
+		c.JSON(http.StatusAccepted, gin.H{
 			"message": "task queued",
 		})
 	}
@@ -147,7 +147,7 @@ func DeleteTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /tasks/{id} [patch]
-func UpdateTaskStatusHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
+func UpdateTaskStatusHandler(q *queue.RedisQueue) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
@@ -156,12 +156,14 @@ func UpdateTaskStatusHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 			return
 		}
 
-		task, err := servicepkg.MarkTaskDone(db, rdb, id)
-		if err != nil {
+		if err := servicepkg.MarkTaskDone(id, q); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 			return
+
 		}
 
-		c.JSON(http.StatusOK, task)
+		c.JSON(http.StatusAccepted, gin.H{
+			"message": "task queued",
+		})
 	}
 }

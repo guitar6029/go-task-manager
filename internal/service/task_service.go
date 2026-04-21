@@ -48,12 +48,6 @@ func CreateTask(q *queue.RedisQueue, title string) error {
 }
 
 func DeleteTask(id int, q *queue.RedisQueue) error {
-	// err := dbpkg.DeleteTask(db, id)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// cache.InvalidateTasks(rdb)
 
 	if id <= 0 {
 		return fmt.Errorf("Invalid id")
@@ -74,12 +68,24 @@ func DeleteTask(id int, q *queue.RedisQueue) error {
 	return q.PushJob(context.Background(), job)
 }
 
-func MarkTaskDone(db *sql.DB, rdb *redis.Client, id int) (model.Task, error) {
-	task, err := dbpkg.UpdateTaskStatus(db, id, true)
-	if err != nil {
-		return model.Task{}, err
+func MarkTaskDone(id int, q *queue.RedisQueue) error {
+
+	if id <= 0 {
+		return fmt.Errorf("Invalid id")
 	}
 
-	cache.InvalidateTasks(rdb)
-	return task, nil
+	payload, err := json.Marshal(struct {
+		ID int `json:"id"`
+	}{ID: id})
+
+	if err != nil {
+		return err
+	}
+
+	job := model.Job{
+		Type:    "mark_task_done",
+		Payload: payload,
+	}
+
+	return q.PushJob(context.Background(), job)
 }
