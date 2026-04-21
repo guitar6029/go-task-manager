@@ -47,28 +47,31 @@ func CreateTask(q *queue.RedisQueue, title string) error {
 	return q.PushJob(context.Background(), job)
 }
 
-// func CreateTask(db *sql.DB, rdb *redis.Client, title string) (int64, error) {
-// 	if title == "" {
-// 		return 0, fmt.Errorf("title cannot be empty")
-// 	}
-// 	id, err := dbpkg.CreateTask(db, title)
-// 	if err != nil {
-// 		return id, err
-// 	}
+func DeleteTask(id int, q *queue.RedisQueue) error {
+	// err := dbpkg.DeleteTask(db, id)
+	// if err != nil {
+	// 	return err
+	// }
 
-// 	cache.InvalidateTasks(rdb)
-// 	return id, nil
-// }
+	// cache.InvalidateTasks(rdb)
 
-func DeleteTask(db *sql.DB, rdb *redis.Client, id int) error {
-	err := dbpkg.DeleteTask(db, id)
+	if id <= 0 {
+		return fmt.Errorf("Invalid id")
+	}
+
+	payload, err := json.Marshal(struct {
+		ID int `json:"id"`
+	}{ID: id})
 	if err != nil {
 		return err
 	}
 
-	cache.InvalidateTasks(rdb)
+	job := model.Job{
+		Type:    "delete_task",
+		Payload: payload,
+	}
 
-	return nil
+	return q.PushJob(context.Background(), job)
 }
 
 func MarkTaskDone(db *sql.DB, rdb *redis.Client, id int) (model.Task, error) {

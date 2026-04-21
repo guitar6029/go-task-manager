@@ -52,20 +52,37 @@ func main() {
 				Title string `json:"title"`
 			}
 
-			err := json.Unmarshal(job.Payload, &payload)
-			if err != nil {
+			if err := json.Unmarshal(job.Payload, &payload); err != nil {
 				log.Println("failed to parse payload:", err)
 				continue
 			}
 
-			_, err = dbpkg.CreateTask(db, payload.Title)
-			if err != nil {
+			if _, err = dbpkg.CreateTask(db, payload.Title); err != nil {
 				log.Println("failed to create task:", err)
 				continue
 			}
 
 			cache.InvalidateTasks(rdb)
 			log.Println("task created:", payload.Title)
+
+		case "delete_task":
+			var payload struct {
+				ID int `json:"id"`
+			}
+
+			if err := json.Unmarshal(job.Payload, &payload); err != nil {
+				log.Println("failed to parse payload:", err)
+				continue
+			}
+
+			if err := dbpkg.DeleteTask(db, payload.ID); err != nil {
+				log.Println("faild to delete task:", err)
+				continue
+
+			}
+
+			cache.InvalidateTasks(rdb)
+			log.Printf("Task %d deleted", payload.ID)
 
 		default:
 			log.Println("unknown job type:", job.Type)
