@@ -15,6 +15,17 @@ services:
       timeout: 2s
       retries: 5
 
+  worker:
+    build: .
+    container_name: go_worker
+    command: [ "./worker" ]
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+    env_file:
+      - .env
   nginx:
     image: nginx:latest
     container_name: nginx_proxy
