@@ -7,6 +7,7 @@ import (
 
 	_ "taskmanager/docs"
 	"taskmanager/internal/api"
+	"taskmanager/internal/queue"
 
 	dbpkg "taskmanager/internal/db"
 	redispkg "taskmanager/internal/redis"
@@ -24,6 +25,9 @@ func main() {
 	}
 	log.Println("Connected to Redis!")
 
+	// queue
+	q := queue.NewRedisQueue(rdb, "jobs")
+
 	// load env
 	envpkg.LoadEnv()
 
@@ -40,7 +44,7 @@ func main() {
 
 	// Start API
 	fmt.Println("Initializing API Program")
-	api.Start(db, rdb)
+	api.Start(db, rdb, q)
 }
 
 func dbInit() (*sql.DB, error) {

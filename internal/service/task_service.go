@@ -1,11 +1,14 @@
 package service
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"taskmanager/internal/cache"
 	dbpkg "taskmanager/internal/db"
 	model "taskmanager/internal/model"
+	"taskmanager/internal/queue"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -25,19 +28,37 @@ func GetTasks(db *sql.DB, rdb *redis.Client, filter string, limit int, offset in
 
 	return dbpkg.GetTasks(db, filter, limit, offset)
 }
-
-func CreateTask(db *sql.DB, rdb *redis.Client, title string) (int64, error) {
+func CreateTask(q *queue.RedisQueue, title string) error {
 	if title == "" {
-		return 0, fmt.Errorf("title cannot be empty")
+		return fmt.Errorf("title cannot be empty")
 	}
-	id, err := dbpkg.CreateTask(db, title)
+	payload, err := json.Marshal(struct {
+		Title string `json:"title"`
+	}{Title: title})
 	if err != nil {
-		return id, err
+		return err
 	}
 
-	cache.InvalidateTasks(rdb)
-	return id, nil
+	job := model.Job{
+		Type:    "create_task",
+		Payload: payload,
+	}
+
+	return q.PushJob(context.Background(), job)
 }
+
+// func CreateTask(db *sql.DB, rdb *redis.Client, title string) (int64, error) {
+// 	if title == "" {
+// 		return 0, fmt.Errorf("title cannot be empty")
+// 	}
+// 	id, err := dbpkg.CreateTask(db, title)
+// 	if err != nil {
+// 		return id, err
+// 	}
+
+// 	cache.InvalidateTasks(rdb)
+// 	return id, nil
+// }
 
 func DeleteTask(db *sql.DB, rdb *redis.Client, id int) error {
 	err := dbpkg.DeleteTask(db, id)

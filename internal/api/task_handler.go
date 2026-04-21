@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strconv"
 	model "taskmanager/internal/model"
+	"taskmanager/internal/queue"
 	servicepkg "taskmanager/internal/service"
 
 	"github.com/gin-gonic/gin"
@@ -77,7 +78,7 @@ type CreateTaskRequest struct {
 // @Failure 400 {object} map[string]string
 // @Failure 500 {object} map[string]string
 // @Router /tasks [post]
-func CreateTaskHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
+func CreateTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var body CreateTaskRequest
@@ -94,16 +95,14 @@ func CreateTaskHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 			return
 		}
 
-		//call service
-		id, err := servicepkg.CreateTask(db, rdb, body.Title)
+		//call service (queue now)
+		err := servicepkg.CreateTask(q, body.Title)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
 		}
 		c.JSON(http.StatusCreated, gin.H{
-			"id":    id,
-			"title": body.Title,
-			"done":  false,
+			"message": "task queued",
 		})
 	}
 }

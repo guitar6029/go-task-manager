@@ -5,6 +5,7 @@ import (
 	"log"
 
 	middleware "taskmanager/internal/middleware"
+	"taskmanager/internal/queue"
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
@@ -12,19 +13,19 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
-func Start(db *sql.DB, rdb *redis.Client) {
+func Start(db *sql.DB, rdb *redis.Client, q *queue.RedisQueue) {
 	r := gin.Default()
 
 	r.Use(middleware.RateLimiter())
 
-	registerRoutes(r, db, rdb)
+	registerRoutes(r, db, rdb, q)
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client) {
+func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.RedisQueue) {
 
 	//health
 	r.GET("/health", HealthHandler(db))
@@ -36,7 +37,7 @@ func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client) {
 	authorized := r.Group("/")
 	authorized.Use(middleware.AuthMiddleware())
 	authorized.GET("/tasks", GetTasksHandler(db, rdb))
-	authorized.POST("/tasks", CreateTaskHandler(db, rdb))
+	authorized.POST("/tasks", CreateTaskHandler(q))
 	authorized.DELETE("/tasks/:id", DeleteTaskHandler(db, rdb))
 	authorized.PATCH("/tasks/:id", UpdateTaskStatusHandler(db, rdb))
 
