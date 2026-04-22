@@ -1,11 +1,14 @@
 package service
 
 import (
+	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"taskmanager/internal/cache"
 	dbpkg "taskmanager/internal/db"
 	model "taskmanager/internal/model"
+	"taskmanager/internal/queue"
 
 	"github.com/redis/go-redis/v9"
 )
@@ -25,37 +28,70 @@ func GetTasks(db *sql.DB, rdb *redis.Client, filter string, limit int, offset in
 
 	return dbpkg.GetTasks(db, filter, limit, offset)
 }
-
-func CreateTask(db *sql.DB, rdb *redis.Client, title string) (int64, error) {
+func CreateTask(q *queue.RedisQueue, title string) error {
 	if title == "" {
-		return 0, fmt.Errorf("title cannot be empty")
+		return fmt.Errorf("title cannot be empty")
 	}
-	id, err := dbpkg.CreateTask(db, title)
-	if err != nil {
-		return id, err
-	}
-
-	cache.InvalidateTasks(rdb)
-	return id, nil
-}
-
-func DeleteTask(db *sql.DB, rdb *redis.Client, id int) error {
-	err := dbpkg.DeleteTask(db, id)
+	payload, err := json.Marshal(struct {
+		Title string `json:"title"`
+	}{Title: title})
 	if err != nil {
 		return err
 	}
 
-	cache.InvalidateTasks(rdb)
-
-	return nil
-}
-
-func MarkTaskDone(db *sql.DB, rdb *redis.Client, id int) (model.Task, error) {
-	task, err := dbpkg.UpdateTaskStatus(db, id, true)
-	if err != nil {
-		return model.Task{}, err
+	job := model.Job{
+		Type:     "create_task",
+		Payload:  payload,
+		Retries:  0,
+		MaxRetry: 3,
 	}
 
-	cache.InvalidateTasks(rdb)
-	return task, nil
+	return q.PushJob(context.Background(), job)
+}
+
+func DeleteTask(id int, q *queue.RedisQueue) error {
+
+	if id <= 0 {
+		return fmt.Errorf("invalid id")
+	}
+
+	payload, err := json.Marshal(struct {
+		ID int `json:"id"`
+	}{ID: id})
+	if err != nil {
+		return err
+	}
+
+	job := model.Job{
+		Type:     "delete_task",
+		Payload:  payload,
+		Retries:  0,
+		MaxRetry: 3,
+	}
+
+	return q.PushJob(context.Background(), job)
+}
+
+func MarkTaskDone(id int, q *queue.RedisQueue) error {
+
+	if id <= 0 {
+		return fmt.Errorf("invalid id")
+	}
+
+	payload, err := json.Marshal(struct {
+		ID int `json:"id"`
+	}{ID: id})
+
+	if err != nil {
+		return err
+	}
+
+	job := model.Job{
+		Type:     "mark_task_done",
+		Payload:  payload,
+		Retries:  0,
+		MaxRetry: 3,
+	}
+
+	return q.PushJob(context.Background(), job)
 }

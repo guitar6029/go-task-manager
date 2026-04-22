@@ -8,6 +8,9 @@ COPY . .
 # build api
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o api ./cmd/api
 
+# build worker
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o worker ./cmd/worker
+
 # later cli
 # RUN go build -o cli ./cmd/cli
 
@@ -18,6 +21,7 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y curl
 
 COPY --from=builder /app/api .
+COPY --from=builder /app/worker .
 
 EXPOSE 8080
 CMD ["./api"]
