@@ -40,8 +40,10 @@ func CreateTask(q *queue.RedisQueue, title string) error {
 	}
 
 	job := model.Job{
-		Type:    "create_task",
-		Payload: payload,
+		Type:     "create_task",
+		Payload:  payload,
+		Retries:  0,
+		MaxRetry: 3,
 	}
 
 	return q.PushJob(context.Background(), job)
@@ -50,7 +52,7 @@ func CreateTask(q *queue.RedisQueue, title string) error {
 func DeleteTask(id int, q *queue.RedisQueue) error {
 
 	if id <= 0 {
-		return fmt.Errorf("Invalid id")
+		return fmt.Errorf("invalid id")
 	}
 
 	payload, err := json.Marshal(struct {
@@ -61,8 +63,10 @@ func DeleteTask(id int, q *queue.RedisQueue) error {
 	}
 
 	job := model.Job{
-		Type:    "delete_task",
-		Payload: payload,
+		Type:     "delete_task",
+		Payload:  payload,
+		Retries:  0,
+		MaxRetry: 3,
 	}
 
 	return q.PushJob(context.Background(), job)
@@ -71,7 +75,7 @@ func DeleteTask(id int, q *queue.RedisQueue) error {
 func MarkTaskDone(id int, q *queue.RedisQueue) error {
 
 	if id <= 0 {
-		return fmt.Errorf("Invalid id")
+		return fmt.Errorf("invalid id")
 	}
 
 	payload, err := json.Marshal(struct {
@@ -83,8 +87,10 @@ func MarkTaskDone(id int, q *queue.RedisQueue) error {
 	}
 
 	job := model.Job{
-		Type:    "mark_task_done",
-		Payload: payload,
+		Type:     "mark_task_done",
+		Payload:  payload,
+		Retries:  0,
+		MaxRetry: 3,
 	}
 
 	return q.PushJob(context.Background(), job)
