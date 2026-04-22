@@ -57,7 +57,7 @@ The service layer is shared between the CLI and API to avoid duplication and ens
 
 ⚙️ Getting Started
 1. Clone the repo
-git clone https://github.com/yourusername/task-manager.git
+git clone https://github.com/guitar6029/task-manager.git
 cd task-manager
 2. Set environment variables
 
