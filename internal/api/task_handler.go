@@ -2,6 +2,7 @@ package api
 
 import (
 	"database/sql"
+	"log"
 	"net/http"
 	"strconv"
 	model "taskmanager/internal/model"
@@ -10,6 +11,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+
+	"os"
 )
 
 var _ = model.Task{}
@@ -28,6 +31,10 @@ var _ = model.Task{}
 // @Router /tasks [get]
 func GetTasksHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		hostname, _ := os.Hostname()
+		log.Printf("handled by: %s | path: %s", hostname, c.Request.URL.Path)
+
 		//read query params
 		limitStr := c.Query("limit")
 		offsetStr := c.Query("offset")
