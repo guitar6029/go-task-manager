@@ -1,127 +1,240 @@
-🔧 Task Manager API (Go + Gin)
+# Task Manager API
 
+Task Manager is a production-style backend system built in Go, demonstrating authenticated task management, asynchronous job processing, and horizontally scalable API design.
 
-📌 Overview
+It combines a REST API, background worker, and reverse proxy layer to simulate a more realistic distributed backend architecture than a basic CRUD app.
 
-A production-style backend API built with Go, focused on authentication, task management, and scalable system design. This project demonstrates clean architecture, RESTful API design, and containerized deployment.
+## Overview
 
-🚀 Features
-User registration & authentication (JWT-based)
-Protected routes with middleware
-CRUD operations for tasks
-Pagination (limit & offset)
-PostgreSQL database integration
-Dockerized setup for easy deployment
-Input validation & error handling
+The system is composed of three main components:
 
-🛠 Tech Stack
-Language: Go
-Framework: Gin
-Database: PostgreSQL
-Auth: JWT
-Containerization: Docker
-Docs: Swagger
+- `cmd/api`: Gin-based HTTP server handling authentication and task APIs
+- `cmd/worker`: Background worker that processes asynchronous jobs from Redis
+- `cmd/cli`: Lightweight local development shell
 
-📂 Project Structure
+Task reads are synchronous. Task writes are processed asynchronously through a Redis-backed queue, which separates request handling from mutation processing.
 
+## Features
+
+- User registration and login with JWT-based authentication
+- Protected task endpoints
+- Task listing with pagination and completion filtering
+- Asynchronous task creation, deletion, and completion updates via Redis jobs
+- Worker retry handling with dead-letter queue support (`jobs:failed`)
+- PostgreSQL-backed persistence
+- Redis-backed queueing, plus cache hooks for task reads
+- Basic API rate limiting middleware
+- NGINX reverse proxy with:
+  - load balancing across multiple API instances
+  - HTTPS support via SSL/TLS termination
+- Docker Compose multi-service setup
+- Swagger UI for API exploration
+- Health check endpoint for container orchestration
+
+## System Design Highlights
+
+- Asynchronous job processing using Redis queues and a dedicated worker
+- Separation of read and write paths: synchronous reads, queued mutations
+- Horizontal scaling through multiple API instances behind NGINX
+- TLS termination at the proxy layer
+- Retry and dead-letter queue handling for failed jobs
+
+## Architecture
+
+```text
+Client (HTTPS)
+  |
+  v
+NGINX (TLS termination + load balancing)
+  |
+  +--> API instance 1
+  |
+  +--> API instance 2
+          |
+          +--> PostgreSQL
+          |
+          +--> Redis
+                 |
+                 +--> jobs
+                 +--> jobs:failed
+                        |
+                        v
+                     Worker
+```
+
+## Request Flow
+
+- `GET /tasks` uses the synchronous read path and is backed by PostgreSQL, with Redis cache lookup hooks in the service layer
+- `POST /tasks`, `DELETE /tasks/:id`, and `PATCH /tasks/:id` enqueue jobs in Redis
+- The worker processes queued jobs, retries failures up to 3 times, and moves exhausted jobs to `jobs:failed`
+- `GET /health` checks database connectivity
+
+## Tech Stack
+
+- Language: Go
+- Framework: Gin
+- Database: PostgreSQL
+- Queue/Cache: Redis
+- Proxy: NGINX
+- Containerization: Docker Compose
+- Docs: Swagger
+
+## Project Structure
+
+```text
 go-task-manager/
-├── api/ # HTTP handlers (Gin routes)
-├── db/ # Database queries & connection logic
-├── docs/ # Swagger generated files
-├── middleware/ # Middleware (JWT, rate limiting)
-├── model/ # Data models (structs)
-├── nginx/ # Nginx reverse proxy config
-├── service/ # Business logic layer
-├── .env # Environment variables
+├── cmd/
+│   ├── api/
+│   ├── cli/
+│   └── worker/
+├── docs/
+├── internal/
+│   ├── api/
+│   ├── cache/
+│   ├── config/
+│   ├── db/
+│   ├── middleware/
+│   ├── model/
+│   ├── queue/
+│   ├── redis/
+│   └── service/
+├── nginx/
 ├── docker-compose.yml
 ├── Dockerfile
-├── go.mod
-├── go.sum
-├── main.go # Entry point (CLI + API bootstrap)
-├── README.md
+├── Makefile
+└── README.md
+```
 
-### 🧠 Architecture Overview
+## Environment Variables
 
-This project follows a layered architecture:
+Create `.env` or `.env.local`:
 
-- **api/** → Handles HTTP requests and responses (Gin)
-- **service/** → Contains business logic, reused by both API and CLI
-- **db/** → Handles direct database interactions
-- **model/** → Defines data structures
-- **middleware/** → Cross-cutting concerns (rate limiting, auth)
-- **nginx/** → Reverse proxy configuration for production-like setup
+```env
+DB_HOST=localhost
+DB_PORT=5432
+DB_USER=postgres
+DB_PASSWORD=postgres
+DB_NAME=taskdb
+REDIS_ADDR=localhost:6379
+APP_ENV=local
+```
 
-The service layer is shared between the CLI and API to avoid duplication and ensure consistent business logic.
+Notes:
 
-⚙️ Getting Started
-1. Clone the repo
-git clone https://github.com/guitar6029/task-manager.git
-cd task-manager
-2. Set environment variables
+- `.env.local` is loaded before `.env`
+- `APP_ENV` is optional, but useful for local development logging
+- Database tables are created automatically on startup if they do not already exist
 
-Create a .env file:
+## Running With Docker
 
-DB_URL=postgres://user:password@localhost:5432/taskdb
-JWT_SECRET=your_secret
-3. Run with Docker
-docker-compose up --build
-4. Run locally (without Docker)
-go mod tidy
-go run cmd/main.go
-🔐 API Endpoints
-Auth
-POST /register → Create user
-POST /login → Get JWT
-Tasks (Protected)
-GET /tasks → List tasks
-POST /tasks → Create task
-PUT /tasks/:id → Update task
-DELETE /tasks/:id → Delete task
-🧪 Testing
+```bash
+docker compose up --build
+```
 
-## 🏗 System Design Highlights
+This starts:
 
-- Asynchronous job processing using Redis queue + worker
-- Redis caching layer for task queries
-- NGINX reverse proxy with:
-  - Load balancing (round-robin across API instances)
-  - SSL/TLS termination (HTTPS support)
-- Horizontally scalable API (multiple containers)
+- 2 API instances
+- Worker
+- PostgreSQL
+- Redis
+- NGINX on ports `80` and `443`, with HTTP to HTTPS redirect
 
-Client (HTTPS)
-     ↓
-NGINX (TLS termination + load balancing)
-     ↓
-[ app-1 ]   [ app-2 ]
-     ↓
-Postgres + Redis (cache + queue)
-     ↓
-Worker (async processing)
+## Running Locally
 
-You can test endpoints using:
+Run the API:
 
-Postman
-curl
-Swagger UI (/swagger/index.html)
+```bash
+go run ./cmd/api
+```
 
-🧠 What I Learned
-Structuring Go projects for scalability
-Implementing JWT auth & middleware
-Handling DB connections and queries cleanly
-Building containerized backend services
-📈 Future Improvements
-Add refresh tokens
-Rate limiting
-Unit & integration tests
-Role-based access control (RBAC)
+Run the worker in a separate terminal:
 
-<img width="1672" height="867" alt="image" src="https://github.com/user-attachments/assets/8f8e33f6-b81a-45f0-a0f9-9923a16458c2" />
+```bash
+go run ./cmd/worker
+```
 
-📘 API Documentation (Swagger)
+Run the CLI:
 
-Interactive API documentation is available at:
+```bash
+go run ./cmd/cli
+```
 
-http://localhost/swagger/index.html
+## API Usage
 
-<img width="2242" height="1101" alt="image" src="https://github.com/user-attachments/assets/78a2c5b4-ca29-4555-b7b4-bad30d64c791" />
+### Public Endpoints
 
+- `POST /register`
+- `POST /login`
+- `GET /health`
+- `GET /swagger/index.html`
+
+### Protected Endpoints
+
+Require:
+
+```text
+Authorization: Bearer <token>
+```
+
+Endpoints:
+
+- `GET /tasks`
+- `POST /tasks`
+- `DELETE /tasks/:id`
+- `PATCH /tasks/:id`
+
+### Important Behavior
+
+Task mutation endpoints are asynchronous. They enqueue a job and currently return `202 Accepted` with a queued response instead of returning the final mutated task immediately.
+
+### Example
+
+```bash
+curl https://localhost/tasks \
+  -H "Authorization: Bearer <token>" \
+  -k
+```
+
+`-k` is required for self-signed TLS in local development.
+
+## Swagger
+
+- `http://localhost:8080/swagger/index.html`
+- `https://localhost/swagger/index.html`
+
+## Windows Notes
+
+If using Git Bash with OpenSSL:
+
+```bash
+MSYS_NO_PATHCONV=1 openssl ...
+```
+
+See [DEV_NOTES.MD](DEV_NOTES.MD) for details.
+
+## Current Limitations
+
+- JWT signing currently uses a hardcoded secret and should move to secure configuration
+- CLI functionality is intentionally minimal
+- Observability is still limited to basic logging
+- Rate limiting is present, but still simple
+- Cache helpers exist, but the read path is not yet a fully realized cache-write-through flow
+
+## Production Considerations
+
+In a real deployment, this system would likely evolve to:
+
+- use managed services such as RDS and ElastiCache
+- replace local NGINX with a cloud load balancer
+- store secrets in a secure manager
+- add structured logging and monitoring
+- introduce CI/CD pipelines
+
+## Future Improvements
+
+- Move JWT secret to environment or secret management
+- Add unit and integration tests
+- Implement per-user task ownership
+- Introduce DB migrations
+- Improve observability with metrics and tracing
+- Enhance retry strategy with backoff
