@@ -39,8 +39,6 @@ go-task-manager/
 ├── go.sum
 ├── main.go # Entry point (CLI + API bootstrap)
 ├── README.md
-└── tasks.db # SQLite database (dev)
-
 
 ### 🧠 Architecture Overview
 
@@ -80,6 +78,25 @@ POST /tasks → Create task
 PUT /tasks/:id → Update task
 DELETE /tasks/:id → Delete task
 🧪 Testing
+
+## 🏗 System Design Highlights
+
+- Asynchronous job processing using Redis queue + worker
+- Redis caching layer for task queries
+- NGINX reverse proxy with:
+  - Load balancing (round-robin across API instances)
+  - SSL/TLS termination (HTTPS support)
+- Horizontally scalable API (multiple containers)
+
+Client (HTTPS)
+     ↓
+NGINX (TLS termination + load balancing)
+     ↓
+[ app-1 ]   [ app-2 ]
+     ↓
+Postgres + Redis (cache + queue)
+     ↓
+Worker (async processing)
 
 You can test endpoints using:
 
