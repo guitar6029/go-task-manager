@@ -49,3 +49,8 @@ temp/
 # JSON data (optional)
 # If tasks.json is just local data, ignore it:
 # tasks.json
+
+
+# SSL certs
+nginx/certs/*
+!nginx/certs/.gitkeep
