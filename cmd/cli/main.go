@@ -13,7 +13,7 @@ import (
 	"log"
 	"os"
 	"strings"
-	_ "taskmanager/docs"
+	_ "taskmanager/docs/api"
 
 	dbpkg "taskmanager/internal/db"
 	model "taskmanager/internal/model"

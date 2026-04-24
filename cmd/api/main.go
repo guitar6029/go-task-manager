@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	_ "taskmanager/docs"
+	_ "taskmanager/docs/api"
 	"taskmanager/internal/api"
 	"taskmanager/internal/queue"
 
