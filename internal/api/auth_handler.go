@@ -16,7 +16,7 @@ type AuthRequest struct {
 	Password string `json:"password"`
 }
 
-func LoginHandler(db *sql.DB) gin.HandlerFunc {
+func LoginHandler(db *sql.DB, jwtSecret []byte) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
 		var body AuthRequest
@@ -67,7 +67,7 @@ func LoginHandler(db *sql.DB) gin.HandlerFunc {
 			"exp":     time.Now().Add(time.Hour * 24).Unix(),
 		})
 
-		tokenString, err := token.SignedString([]byte("secret"))
+		tokenString, err := token.SignedString(jwtSecret)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "could not create token"})
 			return

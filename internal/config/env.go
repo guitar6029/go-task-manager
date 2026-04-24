@@ -22,3 +22,11 @@ func LoadEnv() {
 		log.Println("Running with system env variables")
 	}
 }
+
+func GetJWTSecret() string {
+	jwtSecret := os.Getenv("JWT_SECRET")
+	if jwtSecret == "" {
+		log.Fatal("JWT_SECRET is not set")
+	}
+	return jwtSecret
+}
