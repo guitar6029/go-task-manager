@@ -16,6 +16,9 @@ import (
 )
 
 func main() {
+	// load env
+	envpkg.LoadEnv()
+
 	// Redis
 	rdb := redispkg.NewClient()
 
@@ -27,9 +30,6 @@ func main() {
 
 	// queue
 	q := queue.NewRedisQueue(rdb, "jobs")
-
-	// load env
-	envpkg.LoadEnv()
 
 	// DB
 	db, err := dbInit()

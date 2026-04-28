@@ -7,6 +7,8 @@ import (
 	middleware "taskmanager/internal/middleware"
 	"taskmanager/internal/queue"
 
+	envpkg "taskmanager/internal/config"
+
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
 	swaggerFiles "github.com/swaggo/files"
@@ -19,20 +21,22 @@ var trustedProxies = []string{"172.18.0.0/16"}
 func Start(db *sql.DB, rdb *redis.Client, q *queue.RedisQueue) {
 	r := gin.Default()
 
+	secrets := envpkg.GetJWTSecrets()
+
 	if err := r.SetTrustedProxies(trustedProxies); err != nil {
 		log.Fatal("failed to set trusted proxies:", err)
 	}
 
 	r.Use(middleware.RateLimiter())
 
-	registerRoutes(r, db, rdb, q)
+	registerRoutes(r, db, rdb, q, secrets)
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.RedisQueue) {
+func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.RedisQueue, jwtSecret [][]byte) {
 
 	//health
 	r.GET("/health", HealthHandler(db))
@@ -43,12 +47,12 @@ func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.Redis
 		c.JSON(200, gin.H{"ip": c.ClientIP()})
 	})
 
-	r.POST("/login", LoginHandler(db))
+	r.POST("/login", LoginHandler(db, jwtSecret))
 
 	r.POST("/register", RegisterHandler(db))
 
 	authorized := r.Group("/")
-	authorized.Use(middleware.AuthMiddleware())
+	authorized.Use(middleware.AuthMiddleware(jwtSecret))
 	authorized.GET("/tasks", GetTasksHandler(db, rdb))
 	authorized.POST("/tasks", CreateTaskHandler(q))
 	authorized.DELETE("/tasks/:id", DeleteTaskHandler(q))
