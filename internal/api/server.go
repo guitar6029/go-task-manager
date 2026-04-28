@@ -21,7 +21,7 @@ var trustedProxies = []string{"172.18.0.0/16"}
 func Start(db *sql.DB, rdb *redis.Client, q *queue.RedisQueue) {
 	r := gin.Default()
 
-	jwtSecret := []byte(envpkg.GetJWTSecret())
+	secrets := envpkg.GetJWTSecrets()
 
 	if err := r.SetTrustedProxies(trustedProxies); err != nil {
 		log.Fatal("failed to set trusted proxies:", err)
@@ -29,14 +29,14 @@ func Start(db *sql.DB, rdb *redis.Client, q *queue.RedisQueue) {
 
 	r.Use(middleware.RateLimiter())
 
-	registerRoutes(r, db, rdb, q, jwtSecret)
+	registerRoutes(r, db, rdb, q, secrets)
 
 	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
 }
 
-func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.RedisQueue, jwtSecret []byte) {
+func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.RedisQueue, jwtSecret [][]byte) {
 
 	//health
 	r.GET("/health", HealthHandler(db))

@@ -23,10 +23,24 @@ func LoadEnv() {
 	}
 }
 
-func GetJWTSecret() string {
-	jwtSecret := os.Getenv("JWT_SECRET")
-	if jwtSecret == "" {
-		log.Fatal("JWT_SECRET is not set")
+func GetJWTSecrets() [][]byte {
+	current := os.Getenv("JWT_SECRET_CURRENT")
+	old := os.Getenv("JWT_SECRET_OLD")
+
+	var secrets [][]byte
+
+	if current != "" {
+		secrets = append(secrets, []byte(current))
 	}
-	return jwtSecret
+
+	if old != "" {
+		secrets = append(secrets, []byte(old))
+	}
+
+	// if empty
+	if len(secrets) == 0 {
+		log.Fatal("no JWT secrets configured")
+	}
+
+	return secrets
 }
