@@ -17,6 +17,22 @@ import (
 
 var _ = model.Task{}
 
+func getUserID(c *gin.Context) (int, bool) {
+	value, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+		return 0, false
+	}
+
+	userID, ok := value.(int)
+	if !ok {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user id"})
+		return 0, false
+	}
+
+	return userID, true
+}
+
 // GetTasks godoc
 // @Summary Get tasks
 // @Description Get tasks with optional filters
@@ -31,6 +47,12 @@ var _ = model.Task{}
 // @Router /tasks [get]
 func GetTasksHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
+
+		//extract userID
+		userID, ok := getUserID(c)
+		if !ok {
+			return
+		}
 
 		hostname, _ := os.Hostname()
 		log.Printf("handled by: %s | path: %s", hostname, c.Request.URL.Path)
@@ -60,7 +82,7 @@ func GetTasksHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 			filter = "pending"
 		}
 
-		tasks, err := servicepkg.GetTasks(db, rdb, filter, limit, offset)
+		tasks, err := servicepkg.GetTasks(db, rdb, userID, filter, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -88,6 +110,11 @@ type CreateTaskRequest struct {
 func CreateTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+		userID, ok := getUserID(c)
+		if !ok {
+			return
+		}
+
 		var body CreateTaskRequest
 
 		// parse JSON
@@ -103,7 +130,7 @@ func CreateTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 		}
 
 		//call service (queue now)
-		err := servicepkg.CreateTask(q, body.Title)
+		err := servicepkg.CreateTask(q, userID, body.Title)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return
@@ -123,8 +150,13 @@ func CreateTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /tasks/{id} [delete]
-func DeleteTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
+func DeleteTaskHandler(db *sql.DB, q *queue.RedisQueue) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userID, ok := getUserID(c)
+		if !ok {
+			return
+		}
+
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -132,7 +164,17 @@ func DeleteTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 			return
 		}
 
-		err = servicepkg.DeleteTask(id, q)
+		exists, err := servicepkg.TaskBelongsToUser(db, id, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+			return
+		}
+
+		err = servicepkg.DeleteTask(id, userID, q)
 		if err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 			return
@@ -154,8 +196,13 @@ func DeleteTaskHandler(q *queue.RedisQueue) gin.HandlerFunc {
 // @Failure 400 {object} map[string]string
 // @Failure 404 {object} map[string]string
 // @Router /tasks/{id} [patch]
-func UpdateTaskStatusHandler(q *queue.RedisQueue) gin.HandlerFunc {
+func UpdateTaskStatusHandler(db *sql.DB, q *queue.RedisQueue) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		userID, ok := getUserID(c)
+		if !ok {
+			return
+		}
+
 		idStr := c.Param("id")
 		id, err := strconv.Atoi(idStr)
 		if err != nil {
@@ -163,7 +210,17 @@ func UpdateTaskStatusHandler(q *queue.RedisQueue) gin.HandlerFunc {
 			return
 		}
 
-		if err := servicepkg.MarkTaskDone(id, q); err != nil {
+		exists, err := servicepkg.TaskBelongsToUser(db, id, userID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+			return
+		}
+		if !exists {
+			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
+			return
+		}
+
+		if err := servicepkg.MarkTaskDone(id, userID, q); err != nil {
 			c.JSON(http.StatusNotFound, gin.H{"error": "task not found"})
 			return
 
