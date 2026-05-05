@@ -29,21 +29,21 @@ func CreateTask(db *sql.DB, title string) (int64, error) {
 }
 
 // GetTasks retrieves tasks with optional filtering and pagination
-func GetTasks(db *sql.DB, listType string, limit int, offset int) ([]model.Task, error) {
+func GetTasks(db *sql.DB, userID int, listType string, limit int, offset int) ([]model.Task, error) {
 
 	var tasks = []model.Task{}
 
-	query := "SELECT id, title, done FROM tasks"
-	args := []interface{}{}
-	argID := 1
+	query := "SELECT id, title, done FROM tasks WHERE user_id = $1"
+	args := []interface{}{userID}
+	argID := 2
 
 	switch listType {
 	case "done":
-		query += fmt.Sprintf(" WHERE done = $%d", argID)
+		query += fmt.Sprintf(" AND done = $%d", argID)
 		args = append(args, true)
 		argID++
 	case "pending":
-		query += fmt.Sprintf(" WHERE done = $%d", argID)
+		query += fmt.Sprintf(" AND done = $%d", argID)
 		args = append(args, false)
 		argID++
 	}

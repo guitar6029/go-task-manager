@@ -32,6 +32,19 @@ var _ = model.Task{}
 func GetTasksHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 	return func(c *gin.Context) {
 
+		//extract userID
+		value, exists := c.Get("userID")
+		if !exists {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "missing user"})
+			return
+		}
+
+		userID, ok := value.(int)
+		if !ok {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "invalid user id"})
+			return
+		}
+
 		hostname, _ := os.Hostname()
 		log.Printf("handled by: %s | path: %s", hostname, c.Request.URL.Path)
 
@@ -60,7 +73,7 @@ func GetTasksHandler(db *sql.DB, rdb *redis.Client) gin.HandlerFunc {
 			filter = "pending"
 		}
 
-		tasks, err := servicepkg.GetTasks(db, rdb, filter, limit, offset)
+		tasks, err := servicepkg.GetTasks(db, rdb, userID, filter, limit, offset)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 			return

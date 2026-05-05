@@ -13,12 +13,12 @@ import (
 	"github.com/redis/go-redis/v9"
 )
 
-func GetTasks(db *sql.DB, rdb *redis.Client, filter string, limit int, offset int) ([]model.Task, error) {
+func GetTasks(db *sql.DB, rdb *redis.Client, userID int, filter string, limit int, offset int) ([]model.Task, error) {
 	if limit <= 0 {
 		limit = 5
 	}
 
-	cacheKey := fmt.Sprintf("tasks:%s:%d:%d", filter, limit, offset)
+	cacheKey := fmt.Sprintf("tasks:%d:%s:%d:%d", userID, filter, limit, offset)
 
 	//try cache
 	tasks, found := cache.GetTasks(rdb, cacheKey)
@@ -26,7 +26,7 @@ func GetTasks(db *sql.DB, rdb *redis.Client, filter string, limit int, offset in
 		return tasks, nil
 	}
 
-	return dbpkg.GetTasks(db, filter, limit, offset)
+	return dbpkg.GetTasks(db, userID, filter, limit, offset)
 }
 func CreateTask(q *queue.RedisQueue, title string) error {
 	if title == "" {
