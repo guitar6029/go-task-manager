@@ -92,14 +92,15 @@ func handleJob(db *sql.DB, rdb *redis.Client, job *model.Job) error {
 
 	case "create_task":
 		var payload struct {
-			Title string `json:"title"`
+			Title  string `json:"title"`
+			UserID int    `json:"user_id"`
 		}
 
 		if err := json.Unmarshal(job.Payload, &payload); err != nil {
 			return err
 		}
 
-		if _, err := dbpkg.CreateTask(db, payload.Title); err != nil {
+		if _, err := dbpkg.CreateTask(db, payload.UserID, payload.Title); err != nil {
 
 			return err
 		}
@@ -112,7 +113,8 @@ func handleJob(db *sql.DB, rdb *redis.Client, job *model.Job) error {
 
 	case "delete_task":
 		var payload struct {
-			ID int `json:"id"`
+			ID     int `json:"id"`
+			UserID int `json:"user_id"`
 		}
 
 		if err := json.Unmarshal(job.Payload, &payload); err != nil {
@@ -120,7 +122,7 @@ func handleJob(db *sql.DB, rdb *redis.Client, job *model.Job) error {
 			return err
 		}
 
-		if err := dbpkg.DeleteTask(db, payload.ID); err != nil {
+		if err := dbpkg.DeleteTask(db, payload.ID, payload.UserID); err != nil {
 			return err
 
 		}
@@ -131,14 +133,15 @@ func handleJob(db *sql.DB, rdb *redis.Client, job *model.Job) error {
 
 	case "mark_task_done":
 		var payload struct {
-			ID int `json:"id"`
+			ID     int `json:"id"`
+			UserID int `json:"user_id"`
 		}
 
 		if err := json.Unmarshal(job.Payload, &payload); err != nil {
 			return err
 		}
 
-		if _, err := dbpkg.UpdateTaskStatus(db, payload.ID, true); err != nil {
+		if _, err := dbpkg.UpdateTaskStatus(db, payload.ID, payload.UserID, true); err != nil {
 			return err
 		}
 

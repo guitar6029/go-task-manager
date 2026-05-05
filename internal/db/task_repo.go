@@ -9,16 +9,17 @@ import (
 )
 
 // CreateTask inserts a new task and returns its ID
-func CreateTask(db *sql.DB, title string) (int64, error) {
+func CreateTask(db *sql.DB, userID int, title string) (int64, error) {
 	if title == "" {
 		return 0, fmt.Errorf("title cannot be empty")
 	}
 
 	var id int64
 	err := db.QueryRow(
-		`INSERT INTO tasks (title, done) VALUES ($1, $2) RETURNING id`,
+		`INSERT INTO tasks (title, done, user_id) VALUES ($1, $2, $3) RETURNING id`,
 		title,
 		false,
+		userID,
 	).Scan(&id)
 
 	if err != nil {
@@ -76,12 +77,27 @@ func GetTasks(db *sql.DB, userID int, listType string, limit int, offset int) ([
 	return tasks, nil
 }
 
+func TaskBelongsToUser(db *sql.DB, taskID int, userID int) (bool, error) {
+	var exists bool
+	err := db.QueryRow(
+		`SELECT EXISTS(SELECT 1 FROM tasks WHERE id = $1 AND user_id = $2)`,
+		taskID,
+		userID,
+	).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}
+
 // UpdateTaskStatus updates the done status of a task and returns the updated task
-func UpdateTaskStatus(db *sql.DB, taskID int, done bool) (model.Task, error) {
+func UpdateTaskStatus(db *sql.DB, taskID int, userID int, done bool) (model.Task, error) {
 	result, err := db.Exec(
-		`UPDATE tasks SET done = $1 WHERE id = $2`,
+		`UPDATE tasks SET done = $1 WHERE id = $2 AND user_id = $3`,
 		done,
 		taskID,
+		userID,
 	)
 	if err != nil {
 		return model.Task{}, err
@@ -97,8 +113,9 @@ func UpdateTaskStatus(db *sql.DB, taskID int, done bool) (model.Task, error) {
 
 	var task model.Task
 	err = db.QueryRow(
-		`SELECT id, title, done FROM tasks WHERE id = $1`,
+		`SELECT id, title, done FROM tasks WHERE id = $1 AND user_id = $2`,
 		taskID,
+		userID,
 	).Scan(&task.ID, &task.Title, &task.Done)
 
 	if err != nil {
@@ -109,10 +126,11 @@ func UpdateTaskStatus(db *sql.DB, taskID int, done bool) (model.Task, error) {
 }
 
 // DeleteTask removes a task by ID
-func DeleteTask(db *sql.DB, taskID int) error {
+func DeleteTask(db *sql.DB, taskID int, userID int) error {
 	result, err := db.Exec(
-		`DELETE FROM tasks WHERE id = $1`,
+		`DELETE FROM tasks WHERE id = $1 AND user_id = $2`,
 		taskID,
+		userID,
 	)
 	if err != nil {
 		return err

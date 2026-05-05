@@ -55,8 +55,8 @@ func registerRoutes(r *gin.Engine, db *sql.DB, rdb *redis.Client, q *queue.Redis
 	authorized.Use(middleware.AuthMiddleware(jwtSecret))
 	authorized.GET("/tasks", GetTasksHandler(db, rdb))
 	authorized.POST("/tasks", CreateTaskHandler(q))
-	authorized.DELETE("/tasks/:id", DeleteTaskHandler(q))
-	authorized.PATCH("/tasks/:id", UpdateTaskStatusHandler(q))
+	authorized.DELETE("/tasks/:id", DeleteTaskHandler(db, q))
+	authorized.PATCH("/tasks/:id", UpdateTaskStatusHandler(db, q))
 
 	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 }

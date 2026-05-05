@@ -28,13 +28,23 @@ func GetTasks(db *sql.DB, rdb *redis.Client, userID int, filter string, limit in
 
 	return dbpkg.GetTasks(db, userID, filter, limit, offset)
 }
-func CreateTask(q *queue.RedisQueue, title string) error {
+
+func TaskBelongsToUser(db *sql.DB, taskID int, userID int) (bool, error) {
+	if taskID <= 0 {
+		return false, fmt.Errorf("invalid id")
+	}
+
+	return dbpkg.TaskBelongsToUser(db, taskID, userID)
+}
+
+func CreateTask(q *queue.RedisQueue, userID int, title string) error {
 	if title == "" {
 		return fmt.Errorf("title cannot be empty")
 	}
 	payload, err := json.Marshal(struct {
-		Title string `json:"title"`
-	}{Title: title})
+		Title  string `json:"title"`
+		UserID int    `json:"user_id"`
+	}{Title: title, UserID: userID})
 	if err != nil {
 		return err
 	}
@@ -49,15 +59,16 @@ func CreateTask(q *queue.RedisQueue, title string) error {
 	return q.PushJob(context.Background(), job)
 }
 
-func DeleteTask(id int, q *queue.RedisQueue) error {
+func DeleteTask(id int, userID int, q *queue.RedisQueue) error {
 
 	if id <= 0 {
 		return fmt.Errorf("invalid id")
 	}
 
 	payload, err := json.Marshal(struct {
-		ID int `json:"id"`
-	}{ID: id})
+		ID     int `json:"id"`
+		UserID int `json:"user_id"`
+	}{ID: id, UserID: userID})
 	if err != nil {
 		return err
 	}
@@ -72,15 +83,16 @@ func DeleteTask(id int, q *queue.RedisQueue) error {
 	return q.PushJob(context.Background(), job)
 }
 
-func MarkTaskDone(id int, q *queue.RedisQueue) error {
+func MarkTaskDone(id int, userID int, q *queue.RedisQueue) error {
 
 	if id <= 0 {
 		return fmt.Errorf("invalid id")
 	}
 
 	payload, err := json.Marshal(struct {
-		ID int `json:"id"`
-	}{ID: id})
+		ID     int `json:"id"`
+		UserID int `json:"user_id"`
+	}{ID: id, UserID: userID})
 
 	if err != nil {
 		return err
